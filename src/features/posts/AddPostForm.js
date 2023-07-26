@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { addNewPost } from "./postsSlice";
+import { useSelector } from "react-redux";
 import { selectAllUsers } from "../users/usersSlice";
 import { useNavigate } from "react-router-dom";
 
+import { useAddNewPostMutation } from "./postsSlice";
+
 const AddPostForm = () => {
-  const dispatch = useDispatch();
+  const [addNewPost, { isLoading }] = useAddNewPostMutation();
+
   const navigate = useNavigate();
 
   //just because we are using redux, does'nt mean we are not going to use useState
@@ -14,7 +16,6 @@ const AddPostForm = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [userId, setUserId] = useState("");
-  const [addRequestStatus, setAddRequestStatus] = useState("idle");
 
   const users = useSelector(selectAllUsers);
 
@@ -22,16 +23,12 @@ const AddPostForm = () => {
   const onContentChanged = (e) => setContent(e.target.value);
   const onAuthorChanged = (e) => setUserId(e.target.value);
 
-  const canSave =
-    [title, content, userId].every(Boolean) && addRequestStatus === "idle";
+  const canSave = [title, content, userId].every(Boolean) && !isLoading;
 
-  const onSavePostClicked = () => {
+  const onSavePostClicked = async () => {
     if (canSave) {
       try {
-        setAddRequestStatus("pending");
-
-        //redux toolkit adds an unwrap that return a promise that has the payload or it thorws an error if it's the rejected action
-        dispatch(addNewPost({ title, body: content, userId })).unwrap();
+        await addNewPost({ title, body: content, userId }).unwrap();
 
         setTitle("");
         setContent("");
@@ -39,8 +36,6 @@ const AddPostForm = () => {
         navigate("/");
       } catch (err) {
         console.eror("Failed to save the post", err);
-      } finally {
-        setAddRequestStatus("idle");
       }
     }
   };
